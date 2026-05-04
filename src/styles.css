@@ -12772,13 +12772,19 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
   justify-content: space-between;
   gap: 8px;
 }
+.vp-vf-label-main {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
 .vp-vf-range {
   font-size: 10.5px;
   color: var(--ink-400);
   font-weight: 500;
   letter-spacing: 0.02em;
 }
-.vp-req { color: var(--danger-500); }
+.vp-req { color: var(--danger-500); flex-shrink: 0; }
 .vp-vf-input-wrap {
   position: relative;
   display: flex;
