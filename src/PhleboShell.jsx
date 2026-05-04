@@ -11,17 +11,9 @@ import kuraLogo from "./assets/kura-logo.svg";
 
 const LANGUAGES = ["Khmer", "English", "Vietnamese", "Thai", "French", "Korean"];
 
-const NAV_PRIMARY = [
-  { id: "home",     key: "Dashboard", icon: "Home" },
-  { id: "queue",    key: "Queue",     icon: "Users" },
-  { id: "patients", key: "Patients",  icon: "User" },
-  { id: "reports",  key: "Reports",   icon: "BarChart" },
-  { id: "settings", key: "Settings",  icon: "Settings" },
-];
-
 const NAV_BOOTH = [
-  { id: "vitals",  key: "Vital Signs", icon: "Heart",          accent: true },
-  { id: "phlebo",  key: "Phlebotomy",  icon: "FlaskConical",   accent: true },
+  { id: "vitals", key: "Vital Signs", icon: "Heart" },
+  { id: "phlebo", key: "Phlebotomy",  icon: "FlaskConical" },
 ];
 
 export function PhleboSidebar({ collapsed, onToggle, active, onNavigate, lang, onLangChange, mobileOpen = false, onMobileClose }) {
@@ -85,10 +77,6 @@ export function PhleboSidebar({ collapsed, onToggle, active, onNavigate, lang, o
       </div>
 
       <nav className="nav">
-        {NAV_PRIMARY.map(renderItem)}
-        <div className="nav-section-divider" aria-hidden="true">
-          {!effectiveCollapsed && <span>Station</span>}
-        </div>
         {NAV_BOOTH.map(renderItem)}
       </nav>
 
