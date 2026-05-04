@@ -333,6 +333,7 @@ function DeferModal({ sample, onClose, onConfirm }) {
   const [reason, setReason] = useState(DEFER_REASONS[0]);
   const [note, setNote] = useState("");
   if (!sample) return null;
+  const tube = tubeByKey(sample.tube);
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
@@ -344,11 +345,12 @@ function DeferModal({ sample, onClose, onConfirm }) {
         </div>
         <div className="modal-body defer-modal-body">
           <div className="defer-sample-summary">
-            <span>{sample.id}</span>
-            <span>·</span>
-            <span>{tubeByKey(sample.tube).stopperLabel}</span>
-            <span>·</span>
-            <span>{sample.tests.join(", ")}</span>
+            <span className="defer-sample-dot" style={{ background: tube.color, borderColor: tube.stripeColor }} aria-hidden="true" />
+            <span className="defer-sample-id">{sample.id}</span>
+            <span className="defer-sample-divider">·</span>
+            <span className="defer-sample-tube">{tube.stopperLabel}</span>
+            <span className="defer-sample-divider">·</span>
+            <span className="defer-sample-tests">{sample.tests.join(", ")}</span>
           </div>
           <label className="field">
             <span className="label">Reason</span>

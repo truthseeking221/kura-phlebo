@@ -110,6 +110,17 @@ export function SampleDetailPanel({ sample, allSamples, onMarkInverted, onCollec
           <h3 className="vp-sdp-title">{tube.stopperLabel}</h3>
           <div className="vp-sdp-additive">{tube.additive}</div>
         </div>
+        {onPickAnother && (
+          <button
+            type="button"
+            className="vp-sdp-close"
+            onClick={() => onPickAnother(null)}
+            aria-label="Clear inspector"
+            title="Clear inspector"
+          >
+            <I.X size={14} />
+          </button>
+        )}
       </header>
 
       <div className="vp-sdp-section">
