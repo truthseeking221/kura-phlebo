@@ -13393,7 +13393,9 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
 .vp-st tbody tr:last-child td { border-bottom: none; }
 .vp-st-row.is-collected td { background: var(--success-50); }
 .vp-st-row.is-deferred td  { background: var(--warn-50); }
-.vp-st-row.is-focused td   { box-shadow: inset 3px 0 0 var(--brand-500); }
+.vp-st-row.is-focused td   { background: rgba(var(--brand-rgb), 0.055); }
+.vp-st-row.is-focused.is-collected td { background: var(--success-50); }
+.vp-st-row.is-focused.is-deferred  td { background: var(--warn-50); }
 .vp-st-num {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
@@ -13726,7 +13728,7 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
 /* --- Sample table: new Inversion + TAT columns -------------- */
 .vp-st-row { cursor: pointer; }
 .vp-st-row.is-focused td:first-child {
-  position: relative;
+  border-left: 2.5px solid var(--brand-500);
 }
 .vp-st tbody tr:hover td { background: rgba(var(--brand-rgb), 0.025); }
 .vp-st tbody tr.is-collected:hover td { background: var(--success-50); }
