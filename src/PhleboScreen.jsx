@@ -1,12 +1,35 @@
 // Phlebotomy workspace — pre-analytical checklist, tube rack
 // (Order of Draw), and the sample collection table.
+//
+// `focusedSampleId` is owned by the parent so the left-rail
+// SampleDetailPanel and this screen stay in sync — clicking a tube,
+// scanning a tube barcode, or interacting with a row updates the same
+// state.
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { I } from "./icons";
 import { TUBE_CATALOG, tubeByKey, ARM_SITES } from "./phleboData";
 
+// Live-updating clock so timer chips repaint every second.
+function useNow(activeMs = 1000) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), activeMs);
+    return () => clearInterval(t);
+  }, [activeMs]);
+  return now;
+}
+
+function fmtCountdown(ms) {
+  if (ms == null) return "—";
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 // ---------- Tube visual ----------
-function Tube({ tube, count = 1, status, dim, onClick }) {
+function Tube({ tube, count = 1, status, dim, focused, needsInvert, onClick }) {
   const isCollected = status === "collected";
   const isDeferred  = status === "deferred";
   return (
@@ -15,13 +38,21 @@ function Tube({ tube, count = 1, status, dim, onClick }) {
       className={
         "vp-tube" +
         (dim ? " is-dim" : "") +
+        (focused ? " is-focused" : "") +
         (isCollected ? " is-collected" : "") +
-        (isDeferred  ? " is-deferred"  : "")
+        (isDeferred  ? " is-deferred"  : "") +
+        (needsInvert ? " is-needs-invert" : "")
       }
       onClick={onClick}
       aria-label={`${tube.stopperLabel} ×${count}${isCollected ? " collected" : isDeferred ? " deferred" : ""}`}
-      title={`${tube.stopperLabel} — ${tube.additive}`}
+      title={`${tube.stopperLabel} — ${tube.additive}${tube.inversions ? ` · invert ×${tube.inversions}` : ""}`}
     >
+      {tube.inversions > 0 && !dim && (
+        <span className="vp-tube-inv-badge" aria-hidden="true">
+          <I.RefreshCw size={9} />
+          <span>×{tube.inversions}</span>
+        </span>
+      )}
       <span className="vp-tube-cap" style={{ background: tube.color, borderColor: tube.stripeColor }} />
       <span className="vp-tube-body">
         <span className="vp-tube-fluid" style={{ background: `linear-gradient(180deg, ${tube.color}55, ${tube.color}88)` }} />
@@ -122,15 +153,23 @@ function TubeRack({ samples, onSelect, focusedId }) {
   const requiredCounts = useMemo(() => {
     const map = new Map();
     for (const s of samples) {
-      const cur = map.get(s.tube) || { count: 0, status: s.status, sample: s };
+      const cur = map.get(s.tube) || { count: 0, status: s.status, sample: s, needsInvert: false };
       cur.count += 1;
-      // Worst-status wins for the visual: any non-collected dominates collected display.
       if (s.status !== "collected" && cur.status === "collected") cur.status = s.status;
       if (s.status === "deferred") cur.status = "deferred";
+      const tube = tubeByKey(s.tube);
+      if (s.status === "collected" && tube?.inversions > 0 && !s.inverted) {
+        cur.needsInvert = true;
+      }
       map.set(s.tube, cur);
     }
     return map;
   }, [samples]);
+
+  const focusedTubeKey = useMemo(() => {
+    const s = samples.find(x => x.id === focusedId);
+    return s?.tube;
+  }, [samples, focusedId]);
 
   return (
     <div className="vp-rack">
@@ -141,7 +180,7 @@ function TubeRack({ samples, onSelect, focusedId }) {
         </div>
         <span className="vp-rack-legend">
           <span className="vp-rack-legend-item"><span className="vp-rack-legend-dot vp-tone-success" /> Collected</span>
-          <span className="vp-rack-legend-item"><span className="vp-rack-legend-dot vp-tone-warn" /> Deferred</span>
+          <span className="vp-rack-legend-item"><span className="vp-rack-legend-dot vp-tone-warn" /> Needs invert</span>
           <span className="vp-rack-legend-item"><span className="vp-rack-legend-dot vp-tone-muted" /> Not needed</span>
         </span>
       </div>
@@ -157,6 +196,8 @@ function TubeRack({ samples, onSelect, focusedId }) {
               count={req?.count || 0}
               status={status}
               dim={dim}
+              needsInvert={req?.needsInvert}
+              focused={focusedTubeKey === tube.key}
               onClick={() => req && onSelect?.(req.sample.id)}
             />
           );
@@ -166,13 +207,28 @@ function TubeRack({ samples, onSelect, focusedId }) {
   );
 }
 
-// ---------- Sample table ----------
-function SampleRow({ index, sample, onCollect, onDefer, onScan, scanInputRef, focused }) {
+// ---------- Sample row ----------
+function SampleRow({ index, sample, onCollect, onDefer, onMarkInverted, onInspect, onReset, focused, now }) {
   const tube = tubeByKey(sample.tube);
   const isCollected = sample.status === "collected";
   const isDeferred  = sample.status === "deferred";
+  const inversionsRequired = tube?.inversions || 0;
+  const needsInvert = isCollected && inversionsRequired > 0 && !sample.inverted;
+
+  const limitMs = tube?.timeLimitMin ? tube.timeLimitMin * 60 * 1000 : null;
+  const remainingMs = (sample.collectedAtMs && limitMs) ? sample.collectedAtMs + limitMs - now : null;
+  const expired = remainingMs != null && remainingMs <= 0;
+  const timerTone =
+    remainingMs == null ? null :
+    remainingMs <= 0 ? "danger" :
+    remainingMs < 5 * 60 * 1000 ? "danger" :
+    remainingMs < 10 * 60 * 1000 ? "warn" : "success";
+
   return (
-    <tr className={"vp-st-row" + (isCollected ? " is-collected" : "") + (isDeferred ? " is-deferred" : "") + (focused ? " is-focused" : "")}>
+    <tr
+      className={"vp-st-row" + (isCollected ? " is-collected" : "") + (isDeferred ? " is-deferred" : "") + (focused ? " is-focused" : "")}
+      onClick={() => onInspect?.(sample.id)}
+    >
       <td className="vp-st-num">{index + 1}</td>
       <td>
         <div className="vp-st-tube">
@@ -197,6 +253,44 @@ function SampleRow({ index, sample, onCollect, onDefer, onScan, scanInputRef, fo
       <td className="vp-st-stat">
         {sample.stat && <span className="vp-pill vp-tone-danger">STAT</span>}
       </td>
+      <td className="vp-st-invert">
+        {inversionsRequired > 0 ? (
+          isCollected ? (
+            sample.inverted ? (
+              <span className="vp-pill vp-tone-success vp-st-invert-pill">
+                <I.Check size={10} /> ×{inversionsRequired}
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="vp-st-invert-cta"
+                onClick={(e) => { e.stopPropagation(); onMarkInverted(sample.id); }}
+                title="Confirm inversion mixing"
+              >
+                <I.RefreshCw size={11} />
+                <span>Invert ×{inversionsRequired}</span>
+              </button>
+            )
+          ) : (
+            <span className="vp-st-invert-hint" aria-hidden="true">
+              <I.RefreshCw size={11} /> ×{inversionsRequired}
+            </span>
+          )
+        ) : (
+          <span className="vp-st-invert-na">—</span>
+        )}
+      </td>
+      <td className="vp-st-timer">
+        {limitMs && isCollected && (
+          <span className={"vp-pill vp-st-timer-pill" + (timerTone ? " vp-tone-" + timerTone : "")}>
+            <I.Clock size={10} />
+            <span className="vp-st-timer-num">{fmtCountdown(remainingMs)}</span>
+          </span>
+        )}
+        {limitMs && !isCollected && !isDeferred && (
+          <span className="vp-st-timer-hint">{tube.timeLimitMin}m TAT</span>
+        )}
+      </td>
       <td className="vp-st-status">
         {isCollected ? (
           <span className="vp-pill vp-tone-success">
@@ -209,7 +303,7 @@ function SampleRow({ index, sample, onCollect, onDefer, onScan, scanInputRef, fo
           <span className="vp-pill vp-tone-info">Generated</span>
         )}
       </td>
-      <td className="vp-st-action">
+      <td className="vp-st-action" onClick={(e) => e.stopPropagation()}>
         {!isCollected && !isDeferred && (
           <>
             <button type="button" className="btn btn-primary btn-sm" onClick={() => onCollect(sample.id)}>
@@ -221,7 +315,7 @@ function SampleRow({ index, sample, onCollect, onDefer, onScan, scanInputRef, fo
           </>
         )}
         {(isCollected || isDeferred) && (
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => onCollect(sample.id, "reset")}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => onReset(sample.id)}>
             <I.RefreshCw size={13} /> Reset
           </button>
         )}
@@ -275,37 +369,78 @@ function DeferModal({ sample, onClose, onConfirm }) {
 }
 
 // ---------- Whole workspace ----------
-export function PhleboScreen({ patient, samples, onUpdateSamples, onSubmit, onSaveDraft, onPushToast }) {
+export function PhleboScreen({
+  patient,
+  samples,
+  onUpdateSamples,
+  onSubmit,
+  onSaveDraft,
+  onPushToast,
+  focusedSampleId,
+  onFocusSample,
+}) {
   const [checks, setChecks] = useState({ id: false, fasting: false, allergy: false, consent: false, site: false });
   const [arm, setArm] = useState("L");
   const [site, setSite] = useState(ARM_SITES[0]);
   const [deferTarget, setDeferTarget] = useState(null);
   const [scanValue, setScanValue] = useState("");
-  const [focusedSampleId, setFocusedSampleId] = useState(null);
+  const [confirmInvertSkipped, setConfirmInvertSkipped] = useState(false);
   const scanRef = useRef(null);
+  const now = useNow(1000);
 
   useEffect(() => {
-    // Hot-key scanner field after mounting.
     scanRef.current?.focus();
-  }, []);
+  }, [patient?.id]);
 
   const collectedCount = samples.filter(s => s.status === "collected").length;
   const allCollected = samples.length > 0 && collectedCount === samples.length;
   const anyOpen = samples.some(s => s.status !== "collected" && s.status !== "deferred");
 
-  const setStatus = (id, status, extra = {}) => {
-    onUpdateSamples(samples.map(s => s.id === id ? { ...s, status, ...extra } : s));
+  // Inversions still pending — gate the submit until phlebotomist either
+  // confirms each one or explicitly accepts the override.
+  const pendingInversions = samples.filter(s => {
+    if (s.status !== "collected") return false;
+    const tube = tubeByKey(s.tube);
+    return (tube?.inversions || 0) > 0 && !s.inverted;
+  });
+  const inversionsBlocking = pendingInversions.length > 0;
+
+  const setStatus = (id, patch) => {
+    onUpdateSamples(samples.map(s => s.id === id ? { ...s, ...patch } : s));
   };
 
-  const collect = (id, mode) => {
-    if (mode === "reset") {
-      setStatus(id, "generated", { collectedAt: undefined, deferReason: undefined });
-      onPushToast?.({ tone: "info", text: `Reset ${id} — back to generated` });
-      return;
-    }
-    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    setStatus(id, "collected", { collectedAt: now, collectedBy: "Linh Nguyen" });
-    onPushToast?.({ tone: "success", text: `Collected ${id}` });
+  const collect = (id) => {
+    const ms = Date.now();
+    const at = new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setStatus(id, {
+      status: "collected",
+      collectedAt: at,
+      collectedAtMs: ms,
+      collectedBy: "Linh Nguyen",
+      inverted: false,
+    });
+    onFocusSample?.(id);
+    const tube = tubeByKey(samples.find(s => s.id === id)?.tube);
+    const invertNote = tube?.inversions ? ` — invert ×${tube.inversions} now` : "";
+    onPushToast?.({ tone: "success", text: `Collected ${id}${invertNote}` });
+  };
+
+  const reset = (id) => {
+    setStatus(id, {
+      status: "generated",
+      collectedAt: undefined,
+      collectedAtMs: undefined,
+      collectedBy: undefined,
+      inverted: false,
+      deferReason: undefined,
+      deferNote: undefined,
+    });
+    onPushToast?.({ tone: "info", text: `Reset ${id} — back to generated` });
+  };
+
+  const markInverted = (id) => {
+    setStatus(id, { inverted: true });
+    onPushToast?.({ tone: "success", text: `Inversion confirmed for ${id}` });
   };
 
   const defer = (id) => {
@@ -315,35 +450,51 @@ export function PhleboScreen({ patient, samples, onUpdateSamples, onSubmit, onSa
 
   const confirmDefer = ({ reason, note }) => {
     if (!deferTarget) return;
-    setStatus(deferTarget.id, "deferred", { deferReason: reason, deferNote: note });
+    setStatus(deferTarget.id, { status: "deferred", deferReason: reason, deferNote: note });
     onPushToast?.({ tone: "warn", text: `Deferred ${deferTarget.id} — ${reason}` });
     setDeferTarget(null);
   };
 
   const markAllCollected = () => {
-    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    onUpdateSamples(samples.map(s => s.status === "generated" ? { ...s, status: "collected", collectedAt: now, collectedBy: "Linh Nguyen" } : s));
-    onPushToast?.({ tone: "success", text: "All open samples marked collected" });
+    const ms = Date.now();
+    const at = new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    onUpdateSamples(samples.map(s =>
+      s.status === "generated"
+        ? { ...s, status: "collected", collectedAt: at, collectedAtMs: ms, collectedBy: "Linh Nguyen", inverted: false }
+        : s
+    ));
+    onPushToast?.({ tone: "success", text: "All open samples marked collected — confirm inversions next" });
   };
 
-  // Barcode confirmation: scan a sample id to mark collected.
+  // Scan field: the phlebotomist's primary input. Scanning a generated
+  // tube collects it; scanning an already-collected tube focuses the
+  // detail panel so they can review or mark inverted; unknown ID errors.
   const onScanKey = (e) => {
     if (e.key !== "Enter") return;
     e.preventDefault();
     const id = scanValue.trim();
+    if (!id) return;
     const s = samples.find(x => x.id === id);
     if (!s) {
       onPushToast?.({ tone: "danger", text: `No sample matches ${id}` });
+      onFocusSample?.(null);
     } else if (s.status === "collected") {
-      onPushToast?.({ tone: "info", text: `${id} already collected` });
+      onFocusSample?.(id);
+      onPushToast?.({ tone: "info", text: `${id} already collected — opened in inspector` });
+    } else if (s.status === "deferred") {
+      onFocusSample?.(id);
+      onPushToast?.({ tone: "info", text: `${id} is deferred — opened in inspector` });
     } else {
       collect(id);
     }
     setScanValue("");
-    setFocusedSampleId(id);
   };
 
+  const inspect = (id) => onFocusSample?.(id);
+
   const vitalsMissing = patient && patient.journey?.vitals !== "done";
+
+  const canSubmit = allCollected && (!inversionsBlocking || confirmInvertSkipped);
 
   return (
     <section className="vp-phs">
@@ -378,7 +529,7 @@ export function PhleboScreen({ patient, samples, onUpdateSamples, onSubmit, onSa
         site={site} onSite={setSite}
       />
 
-      <TubeRack samples={samples} onSelect={setFocusedSampleId} focusedId={focusedSampleId} />
+      <TubeRack samples={samples} onSelect={inspect} focusedId={focusedSampleId} />
 
       <div className="vp-st-toolbar">
         <div className="vp-st-scan-field">
@@ -388,7 +539,7 @@ export function PhleboScreen({ patient, samples, onUpdateSamples, onSubmit, onSa
             value={scanValue}
             onChange={(e) => setScanValue(e.target.value)}
             onKeyDown={onScanKey}
-            placeholder="Scan tube barcode to confirm…"
+            placeholder="Scan tube barcode — collect, or open in inspector if already done…"
             spellCheck={false}
           />
           <span className="kbd">Enter</span>
@@ -414,6 +565,8 @@ export function PhleboScreen({ patient, samples, onUpdateSamples, onSubmit, onSa
               <th>Vol</th>
               <th>Container</th>
               <th>STAT</th>
+              <th>Inversion</th>
+              <th>TAT</th>
               <th>Status</th>
               <th>Action</th>
             </tr>
@@ -429,12 +582,33 @@ export function PhleboScreen({ patient, samples, onUpdateSamples, onSubmit, onSa
                   sample={s}
                   onCollect={collect}
                   onDefer={defer}
+                  onMarkInverted={markInverted}
+                  onInspect={inspect}
+                  onReset={reset}
                   focused={focusedSampleId === s.id}
+                  now={now}
                 />
               ))}
           </tbody>
         </table>
       </div>
+
+      {inversionsBlocking && allCollected && (
+        <div className="vp-vf-confirm">
+          <label className="vp-vf-confirm-label">
+            <input
+              type="checkbox"
+              checked={confirmInvertSkipped}
+              onChange={(e) => setConfirmInvertSkipped(e.target.checked)}
+            />
+            <span>
+              <strong>Override inversion confirmation.</strong>{" "}
+              {pendingInversions.length} tube{pendingInversions.length === 1 ? "" : "s"} not yet confirmed inverted —
+              skipping inversions can clot the sample. Mark each inverted from the inspector or table; only override if you've already done so on the bench.
+            </span>
+          </label>
+        </div>
+      )}
 
       <footer className="vp-phs-actions">
         <button type="button" className="btn btn-ghost" onClick={onSaveDraft}>Save draft</button>
@@ -442,7 +616,7 @@ export function PhleboScreen({ patient, samples, onUpdateSamples, onSubmit, onSa
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!allCollected}
+            disabled={!canSubmit}
             onClick={onSubmit}
           >
             Submit collection & next patient

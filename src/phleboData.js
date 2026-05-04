@@ -15,17 +15,26 @@ export const shifts = [
 
 // CLSI/WHO Order of Draw catalog. Each entry is a recipe for the tube visual.
 // `key` is referenced from sample fixtures.
+//
+// `inversions` follows CLSI H3-A6 / typical manufacturer guidance. Skipping
+// inversions = clotted CBC, failed PT/INR, etc — phlebotomist always
+// confirms after collection.
+//
+// `timeLimitMin` (nullable) is the post-collection processing window. UI
+// starts a countdown when the sample is collected; chip turns amber under
+// 10 min remaining and red under 5 min so the operator routes it to the
+// centrifuge/lab in time.
 export const TUBE_CATALOG = [
-  { key: "yellow-sps", order: 1, color: "#F4C842", stripeColor: "#E5B324", stopperLabel: "Yellow (SPS)", additive: "Sodium polyanethol sulfonate", short: "SPS" },
-  { key: "light-blue", order: 2, color: "#7CC4F2", stripeColor: "#3DA0E1", stopperLabel: "Light Blue",    additive: "Sodium citrate (3.2%)",          short: "Citrate" },
-  { key: "red",        order: 3, color: "#E55353", stripeColor: "#B83D3D", stopperLabel: "Red",           additive: "None / clot activator",          short: "Plain" },
-  { key: "gold-sst",   order: 4, color: "#E2B53C", stripeColor: "#B0892A", stopperLabel: "Gold / SST",    additive: "Clot activator + gel",           short: "SST" },
-  { key: "green",      order: 5, color: "#3FB97A", stripeColor: "#2D8A57", stopperLabel: "Green",         additive: "Lithium heparin ± gel",          short: "LiHep" },
-  { key: "gray-green", order: 6, color: "#7FA68A", stripeColor: "#5C8266", stopperLabel: "Gray-Green",    additive: "Sodium heparin",                 short: "NaHep" },
-  { key: "lavender",   order: 7, color: "#A77BBF", stripeColor: "#7E579A", stopperLabel: "Lavender",      additive: "K₂ EDTA / K₃ EDTA",              short: "EDTA" },
-  { key: "pink",       order: 8, color: "#E89AB5", stripeColor: "#C26F8B", stopperLabel: "Pink",          additive: "K₂ EDTA",                        short: "EDTA-Pink" },
-  { key: "white",      order: 9, color: "#EAEAEA", stripeColor: "#B9B9B9", stopperLabel: "White / Pearl", additive: "K₂ EDTA + gel",                  short: "PCR" },
-  { key: "dark-gray",  order: 10, color: "#4D5566", stripeColor: "#2E3340", stopperLabel: "Dark Gray",    additive: "Sodium fluoride / K oxalate",    short: "NaF" },
+  { key: "yellow-sps", order: 1, color: "#F4C842", stripeColor: "#E5B324", stopperLabel: "Yellow (SPS)", additive: "Sodium polyanethol sulfonate", short: "SPS",       inversions: 8, timeLimitMin: null, handling: ["Mix gently — do not shake", "Send to lab for incubation immediately", "Do NOT refrigerate"] },
+  { key: "light-blue", order: 2, color: "#7CC4F2", stripeColor: "#3DA0E1", stopperLabel: "Light Blue",    additive: "Sodium citrate (3.2%)",          short: "Citrate",   inversions: 4, timeLimitMin: 30,   handling: ["Fill exactly to mark — under-fill voids PT/INR", "Centrifuge within 30 min", "Keep at room temperature"] },
+  { key: "red",        order: 3, color: "#E55353", stripeColor: "#B83D3D", stopperLabel: "Red",           additive: "None / clot activator",          short: "Plain",     inversions: 5, timeLimitMin: null, handling: ["Allow to clot 30 min upright before centrifuging"] },
+  { key: "gold-sst",   order: 4, color: "#E2B53C", stripeColor: "#B0892A", stopperLabel: "Gold / SST",    additive: "Clot activator + gel",           short: "SST",       inversions: 5, timeLimitMin: 30,   handling: ["Allow 30 min clot time", "Centrifuge within 30–60 min", "Keep upright"] },
+  { key: "green",      order: 5, color: "#3FB97A", stripeColor: "#2D8A57", stopperLabel: "Green",         additive: "Lithium heparin ± gel",          short: "LiHep",     inversions: 8, timeLimitMin: 30,   handling: ["Mix immediately to prevent clotting", "Centrifuge within 30 min for stat chemistry"] },
+  { key: "gray-green", order: 6, color: "#7FA68A", stripeColor: "#5C8266", stopperLabel: "Gray-Green",    additive: "Sodium heparin",                 short: "NaHep",     inversions: 8, timeLimitMin: 30,   handling: ["Mix immediately", "Send chilled if HLA typing"] },
+  { key: "lavender",   order: 7, color: "#A77BBF", stripeColor: "#7E579A", stopperLabel: "Lavender",      additive: "K₂ EDTA / K₃ EDTA",              short: "EDTA",      inversions: 8, timeLimitMin: null, handling: ["Mix thoroughly — clots invalidate CBC", "Stable at room temp 24h"] },
+  { key: "pink",       order: 8, color: "#E89AB5", stripeColor: "#C26F8B", stopperLabel: "Pink",          additive: "K₂ EDTA",                        short: "EDTA-Pink", inversions: 8, timeLimitMin: null, handling: ["Mix thoroughly", "Label with 2 patient identifiers — blood bank requirement"] },
+  { key: "white",      order: 9, color: "#EAEAEA", stripeColor: "#B9B9B9", stopperLabel: "White / Pearl", additive: "K₂ EDTA + gel",                  short: "PCR",       inversions: 8, timeLimitMin: null, handling: ["Avoid freeze/thaw cycles", "Process per molecular SOP"] },
+  { key: "dark-gray",  order: 10, color: "#4D5566", stripeColor: "#2E3340", stopperLabel: "Dark Gray",    additive: "Sodium fluoride / K oxalate",    short: "NaF",       inversions: 8, timeLimitMin: 30,   handling: ["Mix immediately to inhibit glycolysis", "Process within 30 min for accurate glucose"] },
 ];
 
 export const tubeByKey = (k) => TUBE_CATALOG.find(t => t.key === k);

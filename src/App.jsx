@@ -13,6 +13,7 @@ import { ScanGate } from "./ScanGate";
 import { PatientCard } from "./PatientCard";
 import { VitalsForm } from "./VitalsForm";
 import { PhleboScreen } from "./PhleboScreen";
+import { SampleDetailPanel } from "./SampleDetailPanel";
 import { QueueDrawer } from "./QueueDrawer";
 import { initialQueue, initialNotifications } from "./phleboData";
 
@@ -56,6 +57,9 @@ function AppShell({ uiLang, setUiLang }) {
   const [queueOpen, setQueueOpen] = useState(false);
 
   const [currentPatientId, setCurrentPatientId] = useState(null);
+  // Shared between PhleboScreen and SampleDetailPanel — scan a tube barcode
+  // or click a tube anywhere → both views snap to the same sample.
+  const [focusedSampleId, setFocusedSampleId] = useState(null);
 
   const pushToast = useCallback((toast) => {
     const id = `t-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -73,7 +77,12 @@ function AppShell({ uiLang, setUiLang }) {
   useEffect(() => {
     setCurrentPatientId(null);
     setBrowseOpen(false);
+    setFocusedSampleId(null);
   }, [activeNav]);
+
+  useEffect(() => {
+    setFocusedSampleId(null);
+  }, [currentPatientId]);
 
   const role = activeNav === "phlebo"
     ? "Phlebotomy"
@@ -149,12 +158,47 @@ function AppShell({ uiLang, setUiLang }) {
           />
         );
       }
+      const samples = currentPatient.samples || [];
+      const focusedSample = samples.find(s => s.id === focusedSampleId) || null;
+
+      const phleboCollect = (id) => {
+        const ms = Date.now();
+        const at = new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        handlePhleboUpdate(samples.map(s => s.id === id
+          ? { ...s, status: "collected", collectedAt: at, collectedAtMs: ms, collectedBy: "Linh Nguyen", inverted: false }
+          : s));
+        setFocusedSampleId(id);
+        pushToast({ tone: "success", text: `Collected ${id}` });
+      };
+      const phleboReset = (id) => {
+        handlePhleboUpdate(samples.map(s => s.id === id
+          ? { ...s, status: "generated", collectedAt: undefined, collectedAtMs: undefined, collectedBy: undefined, inverted: false, deferReason: undefined, deferNote: undefined }
+          : s));
+        pushToast({ tone: "info", text: `Reset ${id}` });
+      };
+      const phleboMarkInverted = (id) => {
+        handlePhleboUpdate(samples.map(s => s.id === id ? { ...s, inverted: true } : s));
+        pushToast({ tone: "success", text: `Inversion confirmed for ${id}` });
+      };
+
       return (
-        <div className="vp-workspace">
-          <PatientCard
-            patient={currentPatient}
-            currentStep={activeNav === "phlebo" ? "phlebo" : "vitals"}
-          />
+        <div className={"vp-workspace" + (activeNav === "phlebo" ? " vp-workspace-phlebo" : "")}>
+          <div className="vp-workspace-rail">
+            <PatientCard
+              patient={currentPatient}
+              currentStep={activeNav === "phlebo" ? "phlebo" : "vitals"}
+            />
+            {activeNav === "phlebo" && (
+              <SampleDetailPanel
+                sample={focusedSample}
+                allSamples={samples}
+                onMarkInverted={phleboMarkInverted}
+                onCollect={phleboCollect}
+                onReset={phleboReset}
+                onPickAnother={(id) => setFocusedSampleId(id)}
+              />
+            )}
+          </div>
           <div className="vp-workspace-main">
             {activeNav === "vitals" ? (
               <VitalsForm
@@ -167,11 +211,13 @@ function AppShell({ uiLang, setUiLang }) {
             ) : (
               <PhleboScreen
                 patient={currentPatient}
-                samples={currentPatient.samples || []}
+                samples={samples}
                 onUpdateSamples={handlePhleboUpdate}
                 onSubmit={handlePhleboSubmit}
                 onSaveDraft={handleSaveDraft}
                 onPushToast={pushToast}
+                focusedSampleId={focusedSampleId}
+                onFocusSample={setFocusedSampleId}
               />
             )}
           </div>
