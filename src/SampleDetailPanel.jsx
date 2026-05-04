@@ -41,7 +41,7 @@ function useNow(activeMs = 1000) {
   return now;
 }
 
-export function SampleDetailPanel({ sample, allSamples, onMarkInverted, onCollect, onDefer, onReset, onPickAnother }) {
+export function SampleDetailPanel({ sample, allSamples, onMarkInverted, onCollect, onDefer, onReset, onPickAnother, onScanFocus }) {
   const now = useNow(1000);
 
   if (!sample) {
@@ -52,6 +52,13 @@ export function SampleDetailPanel({ sample, allSamples, onMarkInverted, onCollec
         <p className="vp-sdp-empty-body">
           Scan a tube barcode or click a tube to inspect its spec, status, and handling.
         </p>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm vp-sdp-empty-scan"
+          onClick={() => onScanFocus?.()}
+        >
+          <I.Scan size={13} /> Scan tube barcode
+        </button>
         {allSamples?.length > 0 && (
           <div className="vp-sdp-empty-quick">
             <div className="vp-sdp-empty-quick-label">Quick pick</div>

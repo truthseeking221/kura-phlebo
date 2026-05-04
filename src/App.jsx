@@ -196,6 +196,13 @@ function AppShell({ uiLang, setUiLang }) {
                 onCollect={phleboCollect}
                 onReset={phleboReset}
                 onPickAnother={(id) => setFocusedSampleId(id)}
+                onScanFocus={() => {
+                  const el = document.querySelector(".vp-st-scan-field input");
+                  if (el) {
+                    el.focus();
+                    el.scrollIntoView({ block: "center", behavior: "smooth" });
+                  }
+                }}
               />
             )}
           </div>

@@ -334,32 +334,34 @@ function DeferModal({ sample, onClose, onConfirm }) {
   const [note, setNote] = useState("");
   if (!sample) return null;
   return (
-    <div className="vp-modal-scrim" onClick={onClose}>
-      <div className="vp-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className="vp-modal-head">
-          <h3>Defer sample</h3>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close"><I.X size={14} /></button>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="modal-head">
+          <div className="between">
+            <h2>Defer sample</h2>
+            <button type="button" className="icon-btn" onClick={onClose} aria-label="Close"><I.X size={14} /></button>
+          </div>
         </div>
-        <div className="vp-modal-body">
-          <div className="vp-modal-meta">
+        <div className="modal-body defer-modal-body">
+          <div className="defer-sample-summary">
             <span>{sample.id}</span>
             <span>·</span>
             <span>{tubeByKey(sample.tube).stopperLabel}</span>
             <span>·</span>
             <span>{sample.tests.join(", ")}</span>
           </div>
-          <label className="vp-vf-field">
-            <span className="vp-vf-label">Reason</span>
-            <select value={reason} onChange={(e) => setReason(e.target.value)}>
+          <label className="field">
+            <span className="label">Reason</span>
+            <select className="select" value={reason} onChange={(e) => setReason(e.target.value)}>
               {DEFER_REASONS.map(r => <option key={r}>{r}</option>)}
             </select>
           </label>
-          <label className="vp-vf-field">
-            <span className="vp-vf-label">Note (optional)</span>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Add context for the next attempt…" />
+          <label className="field">
+            <span className="label">Note (optional)</span>
+            <textarea className="input defer-note-input" value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Add context for the next attempt..." />
           </label>
         </div>
-        <div className="vp-modal-foot">
+        <div className="modal-foot">
           <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
           <button type="button" className="btn btn-primary" onClick={() => onConfirm({ reason, note })}>Confirm defer</button>
         </div>
