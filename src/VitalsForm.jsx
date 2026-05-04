@@ -56,7 +56,10 @@ function NumField({ field, label, unit, value, onChange, tempUnit, onTempUnitTog
   return (
     <label className={"vp-vf-field" + (oor ? " is-oor" : "")}>
       <span className="vp-vf-label">
-        {label} {required && <span className="vp-req">*</span>}
+        <span className="vp-vf-label-main">
+          <span>{label}</span>
+          {required && <span className="vp-req">*</span>}
+        </span>
         <span className="vp-vf-range">{rangeText(field, tempUnit)}</span>
       </span>
       <span className="vp-vf-input-wrap">
@@ -100,7 +103,10 @@ function BPField({ sys, dia, onSys, onDia, tempUnit }) {
   return (
     <div className={"vp-vf-field vp-vf-bp" + (oor ? " is-oor" : "")}>
       <span className="vp-vf-label">
-        Blood Pressure <span className="vp-req">*</span>
+        <span className="vp-vf-label-main">
+          <span>Blood Pressure</span>
+          <span className="vp-req">*</span>
+        </span>
         <span className="vp-vf-range">{rangeText("bpSys")} / {rangeText("bpDia")}</span>
       </span>
       <span className="vp-vf-input-wrap vp-vf-bp-pair">
