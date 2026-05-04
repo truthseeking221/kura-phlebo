@@ -198,7 +198,7 @@ function TubeRack({ samples, onSelect, focusedId }) {
               dim={dim}
               needsInvert={req?.needsInvert}
               focused={focusedTubeKey === tube.key}
-              onClick={() => req && onSelect?.(req.sample.id)}
+              onClick={() => onSelect?.(req ? req.sample.id : null)}
             />
           );
         })}
@@ -382,6 +382,7 @@ export function PhleboScreen({
   onPushToast,
   focusedSampleId,
   onFocusSample,
+  onMarkVitalsDone,
 }) {
   const [checks, setChecks] = useState({ id: false, fasting: false, allergy: false, consent: false, site: false });
   const [arm, setArm] = useState("L");
@@ -389,11 +390,16 @@ export function PhleboScreen({
   const [deferTarget, setDeferTarget] = useState(null);
   const [scanValue, setScanValue] = useState("");
   const [confirmInvertSkipped, setConfirmInvertSkipped] = useState(false);
+  const [dismissedVitalsWarningFor, setDismissedVitalsWarningFor] = useState(null);
   const scanRef = useRef(null);
   const now = useNow(1000);
 
   useEffect(() => {
     scanRef.current?.focus();
+  }, [patient?.id]);
+
+  useEffect(() => {
+    setDismissedVitalsWarningFor(null);
   }, [patient?.id]);
 
   const collectedCount = samples.filter(s => s.status === "collected").length;
@@ -497,20 +503,39 @@ export function PhleboScreen({
   const inspect = (id) => onFocusSample?.(id);
 
   const vitalsMissing = patient && patient.journey?.vitals !== "done";
+  const showVitalsWarning = vitalsMissing && dismissedVitalsWarningFor !== patient.id;
 
   const canSubmit = allCollected && (!inversionsBlocking || confirmInvertSkipped);
 
   return (
     <section className="vp-phs">
-      {vitalsMissing && (
+      {showVitalsWarning && (
         <div className="vp-banner vp-tone-warn" role="status">
           <I.AlertTriangle size={14} />
           <div className="vp-banner-text">
             <strong>Vital Signs not yet recorded.</strong> You can continue, or send the patient to the Vital Signs booth first.
           </div>
           <div className="vp-banner-actions">
-            <button type="button" className="btn btn-ghost btn-sm">Continue anyway</button>
-            <button type="button" className="btn btn-secondary btn-sm">Mark done at another booth</button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                setDismissedVitalsWarningFor(patient.id);
+                scanRef.current?.focus();
+              }}
+            >
+              Continue anyway
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                onMarkVitalsDone?.();
+                scanRef.current?.focus();
+              }}
+            >
+              Mark done at another booth
+            </button>
           </div>
         </div>
       )}
@@ -579,10 +604,10 @@ export function PhleboScreen({
             {samples
               .slice()
               .sort((a, b) => tubeByKey(a.tube).order - tubeByKey(b.tube).order)
-              .map((s, i) => (
+              .map((s) => (
                 <SampleRow
                   key={s.id}
-                  index={i}
+                  index={tubeByKey(s.tube).order - 1}
                   sample={s}
                   onCollect={collect}
                   onDefer={defer}

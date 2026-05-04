@@ -13281,7 +13281,8 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
   transition: background 0.15s, transform 0.15s;
 }
 .vp-tube:hover { background: rgba(0,0,0,0.03); }
-.vp-tube.is-dim { opacity: 0.32; cursor: default; pointer-events: none; }
+.vp-tube.is-dim { opacity: 0.42; cursor: pointer; }
+.vp-tube.is-dim:hover { opacity: 0.7; background: rgba(0,0,0,0.03); }
 .vp-tube-cap {
   width: 28px;
   height: 10px;

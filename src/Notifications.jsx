@@ -37,12 +37,21 @@ function toneBg(tone) {
   return "var(--brand-50)";
 }
 
+export function notificationIsUnread(n) {
+  return n.read != null ? !n.read : !!n.unread;
+}
+
+function notificationCopy(t, n, keyProp, textProp, paramsProp) {
+  if (n[keyProp]) return t(n[keyProp], n[paramsProp]);
+  return n[textProp] || "";
+}
+
 export function NotificationsPanel({ open, onClose, items, onMarkAllRead, onItemAction, onItemClick }) {
   const t = useLang();
   const ref = useRef(null);
   useClickOutside(ref, onClose, open);
   if (!open) return null;
-  const unread = items.filter(n => !n.read).length;
+  const unread = items.filter(notificationIsUnread).length;
   return (
     <>
       <button
@@ -83,20 +92,24 @@ export function NotificationsPanel({ open, onClose, items, onMarkAllRead, onItem
             </div>
           ) : items.map(n => {
             const Ico = I[n.icon] || I.Bell;
+            const unreadItem = notificationIsUnread(n);
+            const title = notificationCopy(t, n, "titleKey", "title", undefined);
+            const body = notificationCopy(t, n, "bodyKey", "body", "bodyParams");
+            const time = notificationCopy(t, n, "timeKey", "time", "timeParams");
             return (
               <div
                 key={n.id}
-                className={"notif-item" + (n.read ? "" : " unread")}
+                className={"notif-item" + (unreadItem ? " unread" : "")}
                 onClick={() => onItemClick && onItemClick(n)}
               >
                 <div className="notif-item-ico" style={{ background: toneBg(n.tone), color: toneColor(n.tone) }}>
                   <Ico size={16} />
                 </div>
                 <div className="notif-item-body">
-                  <div className="notif-item-title">{t(n.titleKey)}</div>
-                  <div className="notif-item-text">{t(n.bodyKey, n.bodyParams)}</div>
+                  <div className="notif-item-title">{title}</div>
+                  <div className="notif-item-text">{body}</div>
                   <div className="notif-item-foot">
-                    <span className="notif-item-time">{t(n.timeKey, n.timeParams)}</span>
+                    <span className="notif-item-time">{time}</span>
                     {n.actionKey && (
                       <button
                         type="button"
@@ -108,7 +121,7 @@ export function NotificationsPanel({ open, onClose, items, onMarkAllRead, onItem
                     )}
                   </div>
                 </div>
-                {!n.read && <span className="notif-dot" />}
+                {unreadItem && <span className="notif-dot" />}
               </div>
             );
           })}

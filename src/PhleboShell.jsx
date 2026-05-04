@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from "react";
 import { I } from "./icons";
 import { useLang } from "./i18n";
-import { NotificationsPanel, PillMenu, UserMenu } from "./Notifications";
+import { NotificationsPanel, PillMenu, UserMenu, notificationIsUnread } from "./Notifications";
 import { stations, shifts } from "./phleboData";
 import kuraLogo from "./assets/kura-logo.svg";
 
@@ -128,7 +128,7 @@ export function PhleboTopbar({
 
   const stationItem = stations.find(s => s.id === station) || stations[0];
   const shiftItem = shifts.find(s => s.id === shift) || shifts[0];
-  const unread = (notifs || []).filter(n => n.unread).length;
+  const unread = (notifs || []).filter(notificationIsUnread).length;
 
   return (
     <header className="topbar">

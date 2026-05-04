@@ -44,7 +44,7 @@ export default function App() {
 }
 
 function AppShell({ uiLang, setUiLang }) {
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const [activeNav, setActiveNav] = useState(DEFAULT_NAV);
   const [station, setStation] = useState("PSC-01");
   const [shift, setShift] = useState("morning");
@@ -68,6 +68,10 @@ function AppShell({ uiLang, setUiLang }) {
   }, []);
 
   const closeToast = useCallback((id) => setToasts(prev => prev.filter(t => t.id !== id)), []);
+
+  const markNotificationRead = useCallback((id) => {
+    setNotifs(ns => ns.map(n => n.id === id ? { ...n, read: true, unread: false } : n));
+  }, []);
 
   const currentPatient = useMemo(
     () => queue.find(p => p.id === currentPatientId) || null,
@@ -114,6 +118,16 @@ function AppShell({ uiLang, setUiLang }) {
   const handlePhleboUpdate = (samples) => {
     if (!currentPatient) return;
     setQueue(q => q.map(p => p.id === currentPatient.id ? { ...p, samples } : p));
+  };
+
+  const handleMarkVitalsDoneElsewhere = () => {
+    if (!currentPatient) return;
+    const id = currentPatient.id;
+    const name = currentPatient.name;
+    setQueue(q => q.map(p => p.id === id
+      ? { ...p, journey: { ...p.journey, vitals: "done" } }
+      : p));
+    pushToast({ tone: "success", text: `Vital Signs marked done for ${name}` });
   };
 
   const handlePhleboSubmit = () => {
@@ -225,6 +239,7 @@ function AppShell({ uiLang, setUiLang }) {
                 onPushToast={pushToast}
                 focusedSampleId={focusedSampleId}
                 onFocusSample={setFocusedSampleId}
+                onMarkVitalsDone={handleMarkVitalsDoneElsewhere}
               />
             )}
           </div>
@@ -264,9 +279,9 @@ function AppShell({ uiLang, setUiLang }) {
           shift={shift}
           onShiftChange={setShift}
           notifs={notifs}
-          onMarkAllRead={() => setNotifs(ns => ns.map(n => ({ ...n, unread: false })))}
-          onNotifAction={() => {}}
-          onNotifClick={() => {}}
+          onMarkAllRead={() => setNotifs(ns => ns.map(n => ({ ...n, read: true, unread: false })))}
+          onNotifAction={(n) => markNotificationRead(n.id)}
+          onNotifClick={(n) => markNotificationRead(n.id)}
           onUserAction={() => {}}
           station_role={role}
           onBack={currentPatient ? () => setCurrentPatientId(null) : null}
