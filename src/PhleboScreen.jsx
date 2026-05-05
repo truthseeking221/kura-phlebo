@@ -288,7 +288,7 @@ function SampleRow({ index, sample, onCollect, onDefer, onMarkInverted, onInspec
           </span>
         )}
         {limitMs && !isCollected && !isDeferred && (
-          <span className="vp-st-timer-hint">{tube.timeLimitMin}m TAT</span>
+          <span className="vp-st-timer-hint">{tube.timeLimitMin}m</span>
         )}
       </td>
       <td className="vp-st-status">
@@ -595,7 +595,7 @@ export function PhleboScreen({
               <th>Container</th>
               <th>STAT</th>
               <th>Inversion</th>
-              <th>TAT</th>
+              <th>Clot time</th>
               <th>Status</th>
               <th>Action</th>
             </tr>

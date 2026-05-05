@@ -213,7 +213,7 @@ export function SampleDetailPanel({ sample, allSamples, onMarkInverted, onCollec
                 <div className="vp-sdp-timer-row">
                   <span className="vp-sdp-timer-num">{fmtCountdown(remainingMs)}</span>
                   <span className="vp-sdp-timer-tag">
-                    {expired ? "TAT exceeded — flag lab" : "remaining"}
+                    {expired ? "Clot time exceeded — flag lab" : "remaining"}
                   </span>
                 </div>
               ) : (
