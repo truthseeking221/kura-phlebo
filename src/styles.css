@@ -12615,33 +12615,36 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
   line-height: 1.2;
 }
 .vp-pc-meta {
-  margin-top: 3px;
-  font-size: 11.5px;
-  color: var(--ink-500);
+  /* DOB · age · sex — primary identity verification row, nurse reads this */
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-800);
   display: flex; gap: 6px; flex-wrap: wrap;
 }
 .vp-pc-pid {
-  margin-top: 8px;
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11.5px; color: var(--ink-600);
+  /* PID / Order — system references, secondary prominence */
+  margin-top: 6px;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10.5px; color: var(--ink-400);
 }
 .vp-pc-pid-tag {
-  font-size: 9.5px;
+  font-size: 8.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-400);
+  color: var(--ink-300);
   background: var(--ink-100);
-  border-radius: 4px;
-  padding: 1px 6px;
+  border-radius: 3px;
+  padding: 1px 5px;
 }
 .vp-pc-pid-val {
   font-family: 'SF Mono', ui-monospace, monospace;
-  font-weight: 650;
-  color: var(--ink-900);
+  font-weight: 500;
+  color: var(--ink-500);
 }
-.vp-pc-dot { color: var(--ink-300); }
-.vp-pc-order { color: var(--ink-700); font-weight: 600; }
+.vp-pc-dot { color: var(--ink-200); }
+.vp-pc-order { color: var(--ink-400); font-weight: 500; }
 
 .vp-pc-allergies {
   display: flex;
@@ -14215,3 +14218,113 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
   .vp-sdp-status-grid { grid-template-columns: 1fr; }
 }
 /* === End Phlebo extras ===================================== */
+
+/* ============================================================ */
+/* === Tube Inspector screen ================================== */
+/* ============================================================ */
+.vp-inspector-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 40px 24px;
+  gap: 0;
+}
+.vp-inspector-screen.vp-inspector-screen-found {
+  align-items: stretch;
+  justify-content: flex-start;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+.vp-inspector-scan-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+}
+.vp-inspector-glyph {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: var(--brand-50);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--brand-500);
+  margin-bottom: 4px;
+}
+.vp-inspector-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink-900);
+  letter-spacing: -0.01em;
+}
+.vp-inspector-sub {
+  font-size: 13px;
+  color: var(--ink-500);
+  line-height: 1.5;
+  max-width: 320px;
+}
+.vp-inspector-input-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0 12px;
+  height: 48px;
+  margin-top: 8px;
+  transition: border-color 120ms;
+}
+.vp-inspector-input-row:focus-within { border-color: var(--brand-400); }
+.vp-inspector-input-row.is-error { border-color: var(--danger-400); animation: vp-scan-shake 0.4s ease; }
+.vp-inspector-input-row input {
+  flex: 1; border: none; outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: var(--ink-900);
+  font-family: 'SF Mono', ui-monospace, monospace;
+  letter-spacing: 0.04em;
+}
+.vp-inspector-hint {
+  font-size: 11px;
+  color: var(--ink-400);
+  margin-top: 4px;
+}
+.vp-inspector-patient-ctx {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.vp-inspector-patient-name {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink-900);
+}
+.vp-inspector-patient-sub {
+  font-size: 11.5px;
+  color: var(--ink-500);
+  margin-top: 1px;
+  font-family: 'SF Mono', ui-monospace, monospace;
+  letter-spacing: 0.02em;
+}
+.vp-inspector-patient-ctx > .btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+/* Inspector SampleDetailPanel fills width */
+.vp-inspector-screen-found .vp-sdp {
+  position: static;
+  width: 100%;
+  max-height: none;
+  overflow-y: visible;
+}

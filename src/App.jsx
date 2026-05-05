@@ -13,7 +13,7 @@ import { ScanGate } from "./ScanGate";
 import { PatientCard } from "./PatientCard";
 import { VitalsForm } from "./VitalsForm";
 import { PhleboScreen } from "./PhleboScreen";
-import { SampleDetailPanel } from "./SampleDetailPanel";
+import { InspectorScreen } from "./InspectorScreen";
 import { QueueDrawer } from "./QueueDrawer";
 import { initialQueue, initialNotifications } from "./phleboData";
 
@@ -92,7 +92,9 @@ function AppShell({ uiLang, setUiLang }) {
     ? "Phlebotomy"
     : activeNav === "vitals"
       ? "Vital Signs"
-      : "Dashboard";
+      : activeNav === "inspector"
+        ? "Tube Inspector"
+        : "Dashboard";
 
   const handleMatch = (p) => {
     setCurrentPatientId(p.id);
@@ -202,23 +204,6 @@ function AppShell({ uiLang, setUiLang }) {
               patient={currentPatient}
               currentStep={activeNav === "phlebo" ? "phlebo" : "vitals"}
             />
-            {activeNav === "phlebo" && (
-              <SampleDetailPanel
-                sample={focusedSample}
-                allSamples={samples}
-                onMarkInverted={phleboMarkInverted}
-                onCollect={phleboCollect}
-                onReset={phleboReset}
-                onPickAnother={(id) => setFocusedSampleId(id)}
-                onScanFocus={() => {
-                  const el = document.querySelector(".vp-st-scan-field input");
-                  if (el) {
-                    el.focus();
-                    el.scrollIntoView({ block: "center", behavior: "smooth" });
-                  }
-                }}
-              />
-            )}
           </div>
           <div className="vp-workspace-main">
             {activeNav === "vitals" ? (
@@ -244,6 +229,18 @@ function AppShell({ uiLang, setUiLang }) {
             )}
           </div>
         </div>
+      );
+    }
+
+    if (activeNav === "inspector") {
+      return (
+        <InspectorScreen
+          queue={queue}
+          onUpdateSamples={(patientId, samples) =>
+            setQueue(q => q.map(p => p.id === patientId ? { ...p, samples } : p))
+          }
+          onPushToast={pushToast}
+        />
       );
     }
 

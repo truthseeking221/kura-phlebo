@@ -12,8 +12,9 @@ import kuraLogo from "./assets/kura-logo.svg";
 const LANGUAGES = ["Khmer", "English", "Vietnamese", "Thai", "French", "Korean"];
 
 const NAV_BOOTH = [
-  { id: "vitals", key: "Vital Signs", icon: "Heart" },
-  { id: "phlebo", key: "Phlebotomy",  icon: "FlaskConical" },
+  { id: "vitals",    key: "Vital Signs",     icon: "Heart" },
+  { id: "phlebo",    key: "Phlebotomy",      icon: "FlaskConical" },
+  { id: "inspector", key: "Tube Inspector",  icon: "Scan" },
 ];
 
 export function PhleboSidebar({ collapsed, onToggle, active, onNavigate, lang, onLangChange, mobileOpen = false, onMobileClose }) {
