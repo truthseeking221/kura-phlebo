@@ -55,7 +55,7 @@ function Tube({ tube, count = 1, status, dim, focused, needsInvert, onClick }) {
       )}
       <span className="vp-tube-cap" style={{ background: tube.color, borderColor: tube.stripeColor }} />
       <span className="vp-tube-body">
-        <span className="vp-tube-fluid" style={{ background: `linear-gradient(180deg, ${tube.color}55, ${tube.color}88)` }} />
+        <span className="vp-tube-fluid" />
       </span>
       {count > 1 && <span className="vp-tube-badge">×{count}</span>}
       {isCollected && (

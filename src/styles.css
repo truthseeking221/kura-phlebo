@@ -13310,6 +13310,8 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
   left: 0; right: 0; bottom: 0;
   height: 70%;
   border-radius: 0 0 10px 10px;
+  /* Blood — venous, consistent across all tubes. Stopper color signals additive, not contents. */
+  background: linear-gradient(180deg, #9A1F25 0%, #6A0E13 100%);
 }
 .vp-tube-badge {
   position: absolute;
@@ -13957,10 +13959,7 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
   position: absolute;
   left: 0; right: 0; bottom: 0;
   height: 70%;
-  background: linear-gradient(180deg, color-mix(in oklab, var(--tube-color) 50%, transparent), color-mix(in oklab, var(--tube-color) 75%, transparent));
-}
-@supports not (background: color-mix(in oklab, red, blue)) {
-  .vp-sdp-tube-fluid { background: var(--tube-color); opacity: 0.65; }
+  background: linear-gradient(180deg, #9A1F25 0%, #6A0E13 100%);
 }
 .vp-sdp-head-text { flex: 1; min-width: 0; }
 .vp-sdp-close {
