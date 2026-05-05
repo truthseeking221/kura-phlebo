@@ -1,13 +1,15 @@
 // InspectorScreen — cross-queue tube barcode lookup with full SampleDetailPanel.
 // Operator scans any tube ID to inspect spec, status, and take collection actions.
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { I } from "./icons";
 import { SampleDetailPanel } from "./SampleDetailPanel";
+import { tubeByKey } from "./phleboData";
 
 export function InspectorScreen({ queue, onUpdateSamples, onPushToast }) {
   const [query, setQuery] = useState("");
   const [shake, setShake] = useState(false);
+  const [error, setError] = useState(null);
   const [foundSample, setFoundSample] = useState(null);
   const [foundPatient, setFoundPatient] = useState(null);
   const inputRef = useRef(null);
@@ -16,25 +18,67 @@ export function InspectorScreen({ queue, onUpdateSamples, onPushToast }) {
     inputRef.current?.focus();
   }, []);
 
-  function search(raw) {
-    const val = raw.trim();
-    if (!val) return;
+  // Refocus on tab return — scanner-driven workflow
+  useEffect(() => {
+    const refocus = () => {
+      if (document.activeElement === document.body) inputRef.current?.focus();
+    };
+    window.addEventListener("focus", refocus);
+    return () => window.removeEventListener("focus", refocus);
+  }, []);
+
+  // Flatten queue → list of all samples with patient ref for quick-pick + suffix match
+  const allSamples = useMemo(() => {
+    const out = [];
     for (const patient of queue) {
-      const match = (patient.samples || []).find((s) => s.id === val);
-      if (match) {
-        setFoundSample(match);
-        setFoundPatient(patient);
-        setQuery("");
-        return;
+      for (const s of patient.samples || []) {
+        out.push({ patient, sample: s });
       }
     }
+    return out;
+  }, [queue]);
+
+  function search(raw) {
+    const val = (raw || "").trim();
+    if (!val) return;
+    setError(null);
+    // 1. Exact match on full sample ID
+    let hit = allSamples.find((it) => it.sample.id === val);
+    // 2. Suffix match (last 6+ digits typed)
+    if (!hit && /^\d{4,}$/.test(val)) {
+      hit = allSamples.find((it) => it.sample.id.endsWith(val));
+    }
+    // 3. Substring fallback for partial typing
+    if (!hit && val.length >= 4) {
+      hit = allSamples.find((it) => it.sample.id.includes(val));
+    }
+    if (hit) {
+      setFoundSample(hit.sample);
+      setFoundPatient(hit.patient);
+      setQuery("");
+      return;
+    }
+    setError(`No sample matches "${val}".`);
     setShake(true);
-    setTimeout(() => setShake(false), 600);
+    setTimeout(() => setShake(false), 400);
+    inputRef.current?.select();
   }
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    search(query);
+  function pickFromQueue(it) {
+    setFoundSample(it.sample);
+    setFoundPatient(it.patient);
+    setQuery("");
+    setError(null);
+  }
+
+  function onKeyDown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      search(query);
+    } else if (e.key === "Escape") {
+      setQuery("");
+      setError(null);
+    }
   }
 
   function clearResult() {
@@ -127,21 +171,63 @@ export function InspectorScreen({ queue, onUpdateSamples, onPushToast }) {
         <div className="vp-inspector-sub">
           Scan any tube barcode to inspect its spec, status, and handling instructions.
         </div>
-        <form onSubmit={handleSubmit} style={{ width: "100%" }}>
-          <div className={"vp-scan-input-wrap" + (shake ? " is-error is-shake" : "")}>
-            <I.Scan size={15} />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Scan or type sample ID…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-            />
+        <div className={"vp-scan-input-wrap" + (shake ? " is-shake" : "") + (error ? " is-error" : "")}>
+          <I.Scan size={18} />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Scan or type sample ID…"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); if (error) setError(null); }}
+            onKeyDown={onKeyDown}
+            autoComplete="off"
+            spellCheck={false}
+            inputMode="text"
+          />
+          {query && (
+            <button
+              type="button"
+              className="vp-scan-clear"
+              onClick={() => { setQuery(""); setError(null); inputRef.current?.focus(); }}
+              aria-label="Clear"
+            >
+              <I.X size={14} />
+            </button>
+          )}
+        </div>
+        {error && (
+          <div className="vp-scan-error" role="alert">
+            <I.AlertCircle size={14} /> {error}
           </div>
-        </form>
-        <div className="vp-inspector-hint">Press Enter to look up · scanner sends Enter automatically</div>
+        )}
+        <div className="vp-inspector-hint">
+          <kbd>Enter</kbd> submit · <kbd>Esc</kbd> clear · scanner sends Enter automatically
+        </div>
+
+        {allSamples.length > 0 && (
+          <div className="vp-inspector-pick">
+            <div className="vp-inspector-pick-label">Or pick from queue · {allSamples.length} samples</div>
+            <div className="vp-inspector-pick-list">
+              {allSamples.slice(0, 8).map((it) => {
+                const t = tubeByKey(it.sample.tube);
+                return (
+                  <button
+                    key={it.sample.id}
+                    type="button"
+                    className="vp-inspector-pick-row"
+                    onClick={() => pickFromQueue(it)}
+                  >
+                    <span className="vp-inspector-pick-dot" style={{ background: t.color, borderColor: t.stripeColor }} />
+                    <span className="vp-inspector-pick-tube">{t.short}</span>
+                    <span className="vp-inspector-pick-id">{it.sample.id.slice(-6)}</span>
+                    <span className="vp-inspector-pick-pt">{it.patient.name}</span>
+                    <I.ChevronRight size={13} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
